@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Revistas UNITEPC</string>
+    <string name="title_activity_main">Revistas UNITEPC</string>
+    <string name="package_name">org.unitepc.revistas</string>
+    <string name="custom_url_scheme">org.unitepc.revistas</string>
+</resources>

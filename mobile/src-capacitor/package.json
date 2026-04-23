@@ -1,0 +1,17 @@
+{
+  "name": "unitepc-revistas-mobile",
+  "version": "0.0.1",
+  "description": "Aplicacion movil nativa para el ecosistema de revistas UNITEPC",
+  "author": "UNITEPC",
+  "private": true,
+  "dependencies": {
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/file-transfer": "^2.0.4",
+    "@capacitor/file-viewer": "^2.0.1",
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/preferences": "^8.0.1"
+  }
+}

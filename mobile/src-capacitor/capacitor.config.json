@@ -1,0 +1,5 @@
+{
+  "appId": "org.unitepc.revistas",
+  "appName": "Revistas UNITEPC",
+  "webDir": "../dist/spa"
+}
