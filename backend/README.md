@@ -1,59 +1,89 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# App Revistas Backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Backend Laravel 12 para el catalogo de revistas de UNITEPC. Este servicio expone una API publica de solo lectura para revistas OJS y mantiene un catalogo local sincronizado para la app movil.
 
-## About Laravel
+## Requisitos
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP 8.2+
+- Composer 2+
+- MySQL 8+ o MariaDB compatible
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Variables principales
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+El archivo `.env.example` ya viene preparado para el primer despliegue en cPanel con:
 
-## Learning Laravel
+- `APP_URL=https://api.apprevistas.xpertiaplus.com`
+- `DB_CONNECTION=mysql`
+- `OJS_SOURCE_1_ENABLED=false`
+- `OJS_SOURCE_2_DRIVER=public_ojs_34`
+- `G-News` como unica fuente activa
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## Despliegue en cPanel desde Git
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 1. Preparar dominio y base de datos
 
-## Laravel Sponsors
+- Crea o corrige el subdominio para que apunte a `app_revistas/backend/public`
+- Crea la base `xpertiap_apprevistas`
+- Crea el usuario `xpertiap_apprevistas` y dale todos los privilegios
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 2. Clonar el repo e instalar dependencias
 
-### Premium Partners
+```bash
+cd ~
+git clone https://github.com/juanjo2702/App_Revistas.git app_revistas
+cd ~/app_revistas/backend
+composer install --no-dev --optimize-autoloader
+cp .env.example .env
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### 3. Configurar `.env`
 
-## Contributing
+Edita `.env` y ajusta al menos:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```env
+DB_PASSWORD=TU_PASSWORD_REAL
+```
 
-## Code of Conduct
+Si el dominio cambia mas adelante, actualiza tambien:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```env
+APP_URL=https://api.apprevistas.xpertiaplus.com
+```
 
-## Security Vulnerabilities
+### 4. Inicializar Laravel
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+php artisan key:generate
+chmod -R 775 storage bootstrap/cache
+php artisan migrate --force
+php artisan storage:link
+php artisan optimize:clear
+php artisan optimize
+php artisan catalog:sync --source=g-news
+```
 
-## License
+## Verificacion
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Prueba estos endpoints:
+
+```bash
+curl -I https://api.apprevistas.xpertiaplus.com/api/health
+curl https://api.apprevistas.xpertiaplus.com/api/health
+curl https://api.apprevistas.xpertiaplus.com/api/v1/sources
+curl https://api.apprevistas.xpertiaplus.com/api/v1/journals
+```
+
+El backend puede responder vacio en la raiz `/`; la validacion correcta de esta version se hace sobre `/api/*`.
+
+## Actualizaciones futuras
+
+```bash
+cd ~/app_revistas
+git pull origin main
+cd backend
+composer install --no-dev --optimize-autoloader
+php artisan migrate --force
+php artisan optimize:clear
+php artisan optimize
+php artisan catalog:sync --source=g-news
+```
