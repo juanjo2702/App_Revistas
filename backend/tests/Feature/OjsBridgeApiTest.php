@@ -53,6 +53,18 @@ class OjsBridgeApiTest extends TestCase
             ->assertHeader('Access-Control-Allow-Headers', 'Origin, Content-Type, Accept, Authorization, X-Requested-With, Range');
     }
 
+    public function test_it_allows_https_localhost_origin_for_android_webview_requests(): void
+    {
+        $response = $this->call('OPTIONS', '/api/v1/sources', server: [
+            'HTTP_ORIGIN' => 'https://localhost',
+            'HTTP_ACCESS_CONTROL_REQUEST_METHOD' => 'GET',
+        ]);
+
+        $response
+            ->assertNoContent()
+            ->assertHeader('Access-Control-Allow-Origin', 'https://localhost');
+    }
+
     public function test_it_normalizes_journals_issues_articles_and_detail(): void
     {
         Http::fake([

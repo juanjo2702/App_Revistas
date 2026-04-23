@@ -11,6 +11,7 @@ return [
     'allowed_origins' => [
         'capacitor://localhost',
         'http://localhost',
+        'https://localhost',
     ],
 
     'allowed_origins_patterns' => [],
