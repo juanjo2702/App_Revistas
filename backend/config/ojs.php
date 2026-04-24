@@ -12,7 +12,7 @@ return [
     'sources' => array_values(array_filter([
         [
             'slug' => env('OJS_SOURCE_1_SLUG', 'investigacion'),
-            'name' => env('OJS_SOURCE_1_NAME', 'Investigacion UNITEPC'),
+            'name' => env('OJS_SOURCE_1_NAME', 'Familia de Revistas Científicas UNITEPC'),
             'driver' => env('OJS_SOURCE_1_DRIVER', 'public_ojs_34'),
             'base_url' => env('OJS_SOURCE_1_BASE_URL', 'https://investigacion.unitepc.edu.bo/revista'),
             'site_url' => env('OJS_SOURCE_1_SITE_URL', 'https://investigacion.unitepc.edu.bo/revista/'),

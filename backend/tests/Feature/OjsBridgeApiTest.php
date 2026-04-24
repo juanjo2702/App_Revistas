@@ -19,7 +19,7 @@ class OjsBridgeApiTest extends TestCase
         config()->set('ojs.http.cache_ttl_seconds', 1);
         config()->set('ojs.sources', [[
             'slug' => 'investigacion',
-            'name' => 'Investigacion UNITEPC',
+            'name' => 'Familia de Revistas Científicas UNITEPC',
             'driver' => 'rest_v1',
             'base_url' => 'https://investigacion.example/ojs',
             'api_base_url' => 'https://investigacion.example/ojs/index.php/_/api/v1',
@@ -35,7 +35,7 @@ class OjsBridgeApiTest extends TestCase
         $response
             ->assertOk()
             ->assertJsonPath('data.0.slug', 'investigacion')
-            ->assertJsonPath('data.0.name', 'Investigacion UNITEPC');
+            ->assertJsonPath('data.0.name', 'Familia de Revistas Científicas UNITEPC');
     }
 
     public function test_it_handles_mobile_cors_preflight_requests(): void

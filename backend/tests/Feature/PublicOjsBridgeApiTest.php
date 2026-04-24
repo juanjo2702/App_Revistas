@@ -112,7 +112,7 @@ class PublicOjsBridgeApiTest extends TestCase
     {
         config()->set('ojs.sources', [[
             'slug' => 'investigacion',
-            'name' => 'Investigacion UNITEPC',
+            'name' => 'Familia de Revistas Científicas UNITEPC',
             'driver' => 'public_ojs_34',
             'base_url' => 'https://investigacion.example/revista',
             'site_url' => 'https://investigacion.example/revista/',

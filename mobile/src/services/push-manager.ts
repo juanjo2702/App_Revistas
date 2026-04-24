@@ -1,9 +1,59 @@
 import { Capacitor } from '@capacitor/core';
-import { PushNotifications, type Token } from '@capacitor/push-notifications';
 import { Preferences } from '@capacitor/preferences';
+import { PushNotifications, type Token } from '@capacitor/push-notifications';
+import type { Router } from 'vue-router';
 
 const PUSH_TOKEN_KEY = 'unitepc-push-token';
 let listenersBound = false;
+
+interface NotificationRoutePayload {
+  route?: string;
+  source?: string;
+  journal?: string;
+}
+
+function notificationErrorMessage() {
+  return 'No pudimos registrar este dispositivo para recibir alertas.';
+}
+
+async function ensureAndroidChannel() {
+  if (Capacitor.getPlatform() !== 'android') {
+    return;
+  }
+
+  await PushNotifications.createChannel({
+    id: 'catalog-updates',
+    name: 'Novedades de revistas',
+    description: 'Alertas sobre nuevas publicaciones y actualizaciones del catálogo.',
+    importance: 4,
+    visibility: 1,
+  }).catch(() => undefined);
+}
+
+function resolveNavigationTarget(data?: NotificationRoutePayload) {
+  if (!data?.route) {
+    return null;
+  }
+
+  if (data.route === 'journals') {
+    const query: Record<string, string> = {};
+
+    if (typeof data.source === 'string' && data.source !== '') {
+      query.source = data.source;
+    }
+
+    if (typeof data.journal === 'string' && data.journal !== '') {
+      query.journal = data.journal;
+    }
+
+    return {
+      name: 'journals',
+      query,
+    };
+  }
+
+  return null;
+}
 
 function waitForRegistration(): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -28,7 +78,7 @@ function waitForRegistration(): Promise<string> {
     void PushNotifications.addListener('registrationError', (error) => {
       void (async () => {
         await cleanup();
-        reject(new Error(error.error ?? 'No se pudo registrar el dispositivo para notificaciones.'));
+        reject(new Error(error.error ?? notificationErrorMessage()));
       })();
     }).then((handle) => {
       errorHandle = handle;
@@ -36,12 +86,13 @@ function waitForRegistration(): Promise<string> {
   });
 }
 
-export async function setupPushListeners() {
+export async function setupPushListeners(router?: Router) {
   if (!Capacitor.isNativePlatform() || listenersBound) {
     return;
   }
 
   listenersBound = true;
+  await ensureAndroidChannel();
 
   await PushNotifications.addListener('pushNotificationReceived', (notification) => {
     console.info('Push notification received', notification);
@@ -49,6 +100,12 @@ export async function setupPushListeners() {
 
   await PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
     console.info('Push notification action performed', notification);
+
+    const target = resolveNavigationTarget(notification.notification.data as NotificationRoutePayload | undefined);
+
+    if (router && target) {
+      void router.push(target);
+    }
   });
 }
 
@@ -59,10 +116,10 @@ export async function getStoredPushToken() {
 
 export async function enablePushNotifications() {
   if (!Capacitor.isNativePlatform()) {
-    throw new Error('Las notificaciones push solo están disponibles en Android o iOS.');
+    throw new Error('Las alertas solo están disponibles en Android o iPhone.');
   }
 
-  await setupPushListeners();
+  await ensureAndroidChannel();
 
   const current = await PushNotifications.checkPermissions();
   const permissions = current.receive === 'granted'
@@ -70,7 +127,7 @@ export async function enablePushNotifications() {
     : await PushNotifications.requestPermissions();
 
   if (permissions.receive !== 'granted') {
-    throw new Error('El permiso de notificaciones fue rechazado.');
+    throw new Error('No se concedió el permiso para enviar alertas.');
   }
 
   const registration = waitForRegistration();

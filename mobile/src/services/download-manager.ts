@@ -91,6 +91,22 @@ async function ensureFilesystemPermissions() {
   }
 }
 
+async function ensureDownloadFolder() {
+  try {
+    await Filesystem.mkdir({
+      directory: Directory.Documents,
+      path: DOWNLOAD_FOLDER,
+      recursive: true,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message.toLowerCase() : '';
+
+    if (!message.includes('already exists')) {
+      throw error;
+    }
+  }
+}
+
 export async function reconcileDownloads(): Promise<DownloadRecord[]> {
   const entries = await readIndex();
 
@@ -152,11 +168,7 @@ async function ensureDownloaded(payload: DownloadablePayload): Promise<DownloadR
   const filename = sanitizeFilename(payload.filename || `${payload.documentId}.pdf`);
   const path = `${DOWNLOAD_FOLDER}/${filename}`;
 
-  await Filesystem.mkdir({
-    directory: Directory.Documents,
-    path: DOWNLOAD_FOLDER,
-    recursive: true,
-  });
+  await ensureDownloadFolder();
 
   const fileUri = await Filesystem.getUri({
     directory: Directory.Documents,
@@ -187,7 +199,7 @@ async function ensureDownloaded(payload: DownloadablePayload): Promise<DownloadR
 
 export async function ensureArticleDownloaded(article: ArticleDetail): Promise<DownloadRecord> {
   if (!article.pdf) {
-    throw new Error('Este artículo no tiene un PDF descargable.');
+    throw new Error('Este artículo no tiene un PDF disponible para descargar.');
   }
 
   return ensureDownloaded({
@@ -201,7 +213,7 @@ export async function ensureArticleDownloaded(article: ArticleDetail): Promise<D
 
 export async function ensureIssueDownloaded(issue: Pick<IssueSummary, 'id' | 'title' | 'pdf'>): Promise<DownloadRecord> {
   if (!issue.pdf) {
-    throw new Error('Este número no tiene un PDF completo descargable.');
+    throw new Error('Este número no tiene un PDF completo disponible para descargar.');
   }
 
   return ensureDownloaded({

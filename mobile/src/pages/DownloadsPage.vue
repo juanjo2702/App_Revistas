@@ -4,10 +4,11 @@
       <q-card class="glass-card">
         <q-card-section class="row items-center justify-between q-col-gutter-md">
           <div class="col-12 col-sm">
-            <div class="text-overline text-secondary">Lectura offline</div>
+            <div class="text-overline text-secondary">Lectura sin conexión</div>
             <div class="text-h5 text-brand-title q-mt-xs">Descargas guardadas</div>
             <div class="muted-copy q-mt-sm">
-              Tus PDFs descargados se validan antes de mostrarse para evitar enlaces rotos.
+              Tus documentos descargados se revisan antes de mostrarse para mantener la biblioteca
+              limpia y lista para abrir.
             </div>
           </div>
           <div class="col-12 col-sm-auto">
@@ -31,7 +32,7 @@
           color="primary"
           size="42px"
         />
-        <div class="muted-copy">Verificando archivos guardados...</div>
+        <div class="muted-copy">Verificando documentos guardados...</div>
       </div>
 
       <div
@@ -43,9 +44,10 @@
           size="52px"
           color="secondary"
         />
-        <div class="text-subtitle1 text-brand-title">Todavía no hay PDFs descargados</div>
+        <div class="text-subtitle1 text-brand-title">Aún no tienes descargas</div>
         <div class="muted-copy">
-          Cuando guardes un artículo desde el lector aparecerá aquí para abrirlo incluso sin conexión.
+          Cuando guardes un artículo o un número completo aparecerá aquí para abrirlo incluso sin
+          conexión.
         </div>
       </div>
 
@@ -61,7 +63,9 @@
           <q-card-section class="row items-start q-col-gutter-md">
             <div class="col-12 col-sm">
               <div class="text-h6 text-brand-title">{{ download.title }}</div>
-              <div class="muted-copy q-mt-xs">{{ download.documentType === 'issue' ? 'Número completo' : 'Artículo' }}</div>
+              <div class="muted-copy q-mt-xs">
+                {{ download.documentType === 'issue' ? 'Número completo' : 'Artículo' }}
+              </div>
               <div class="muted-copy q-mt-xs">{{ download.filename }}</div>
               <div class="muted-copy q-mt-sm">
                 Guardado {{ formatDate(download.downloadedAt) }}
@@ -117,7 +121,7 @@ async function refreshDownloads() {
   } catch (error) {
     $q.notify({
       type: 'negative',
-      message: error instanceof Error ? error.message : 'No se pudo leer el índice de descargas.',
+      message: error instanceof Error ? error.message : 'No pudimos cargar tus descargas.',
     });
   } finally {
     loading.value = false;
@@ -130,7 +134,7 @@ async function openDownload(download: DownloadRecord) {
   } catch (error) {
     $q.notify({
       type: 'negative',
-      message: error instanceof Error ? error.message : 'No se pudo abrir el archivo descargado.',
+      message: error instanceof Error ? error.message : 'No pudimos abrir el documento guardado.',
     });
   }
 }
@@ -145,7 +149,7 @@ async function removeItem(documentType: DownloadRecord['documentType'], document
   } catch (error) {
     $q.notify({
       type: 'negative',
-      message: error instanceof Error ? error.message : 'No se pudo eliminar el archivo.',
+      message: error instanceof Error ? error.message : 'No pudimos eliminar el archivo.',
     });
   }
 }

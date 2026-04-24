@@ -3,11 +3,11 @@
     <div class="column q-gutter-md">
       <q-card class="glass-card">
         <q-card-section>
-          <div class="text-overline text-secondary">Preferencias del dispositivo</div>
-          <div class="text-h5 text-brand-title q-mt-xs">Alertas y contenido que te interesa</div>
+          <div class="text-overline text-secondary">Preferencias personales</div>
+          <div class="text-h5 text-brand-title q-mt-xs">Alertas y colecciones de interés</div>
           <div class="muted-copy q-mt-sm">
-            Configura tus revistas favoritas y deja listo este teléfono para recibir avisos segmentados
-            cuando el backend productivo tenga FCM configurado.
+            Personaliza tus alertas y selecciona las colecciones que quieres seguir desde este
+            dispositivo.
           </div>
         </q-card-section>
       </q-card>
@@ -15,9 +15,9 @@
       <q-card class="glass-card">
         <q-card-section class="row q-col-gutter-md items-start">
           <div class="col-12 col-md">
-            <div class="text-subtitle1 text-brand-title">Estado del dispositivo</div>
-            <div class="muted-copy q-mt-sm">ID: {{ preferences.deviceId }}</div>
-            <div class="muted-copy">Plataforma: {{ preferences.platform || 'web' }}</div>
+            <div class="text-subtitle1 text-brand-title">Estado de las alertas</div>
+            <div class="muted-copy q-mt-sm">{{ statusMessage }}</div>
+            <div class="muted-copy q-mt-xs">Plataforma: {{ preferences.platform || 'web' }}</div>
             <div class="muted-copy">Versión: {{ preferences.appVersion || 'sin dato' }}</div>
           </div>
 
@@ -27,7 +27,7 @@
               text-color="white"
               class="pill-chip"
             >
-              {{ preferences.pushConfigured ? 'Push registrado' : 'Push pendiente' }}
+              {{ preferences.pushConfigured ? 'Alertas activas' : 'Alertas pendientes' }}
             </q-chip>
           </div>
         </q-card-section>
@@ -38,7 +38,7 @@
           <q-toggle
             v-model="preferences.notificationsEnabled"
             color="primary"
-            label="Habilitar notificaciones en este dispositivo"
+            label="Permitir alertas en este dispositivo"
           />
 
           <div class="row q-col-gutter-sm">
@@ -49,7 +49,7 @@
                 color="primary"
                 icon="notifications_active"
                 :loading="enablingPush"
-                label="Activar push"
+                label="Activar alertas"
                 @click="activatePush"
               />
             </div>
@@ -78,8 +78,8 @@
             map-options
             use-chips
             outlined
-            label="Fuentes seguidas"
-            hint="Selecciona los portales OJS que quieres priorizar"
+            label="Colecciones seguidas"
+            hint="Selecciona las colecciones que quieres priorizar"
           />
 
           <q-select
@@ -91,7 +91,7 @@
             use-chips
             outlined
             label="Revistas seguidas"
-            hint="Se cargan desde las fuentes seleccionadas"
+            hint="Se cargan según las colecciones elegidas"
           />
 
           <q-select
@@ -117,6 +117,17 @@
                 @click="savePreferences"
               />
             </div>
+          </div>
+        </q-card-section>
+      </q-card>
+
+      <q-card class="glass-card">
+        <q-card-section>
+          <div class="text-subtitle1 text-brand-title">Para recibir alertas reales</div>
+          <div class="muted-copy q-mt-sm">
+            La app ya puede registrar este dispositivo y guardar tus preferencias. Para el envío de
+            alertas en producción todavía debes conectar Firebase en Android y cargar las
+            credenciales del servidor.
           </div>
         </q-card-section>
       </q-card>
@@ -171,6 +182,18 @@ const yearOptions = computed(() => {
   }));
 });
 
+const statusMessage = computed(() => {
+  if (preferences.value.pushConfigured && preferences.value.notificationsEnabled) {
+    return 'Este dispositivo ya está listo para recibir novedades de tus revistas preferidas.';
+  }
+
+  if (preferences.value.pushConfigured) {
+    return 'El dispositivo ya está enlazado, pero las alertas están desactivadas.';
+  }
+
+  return 'Activa las alertas para recibir avisos cuando haya novedades en las colecciones que sigues.';
+});
+
 async function loadJournalsForSources(sourceSlugs: string[]) {
   if (sourceSlugs.length === 0) {
     availableJournals.value = [];
@@ -199,7 +222,7 @@ async function loadPage() {
   } catch (error) {
     $q.notify({
       type: 'negative',
-      message: error instanceof Error ? error.message : 'No se pudieron cargar las preferencias.',
+      message: error instanceof Error ? error.message : 'No pudimos cargar tus preferencias.',
     });
   } finally {
     loading.value = false;
@@ -224,12 +247,12 @@ async function activatePush() {
 
     $q.notify({
       type: 'positive',
-      message: 'El dispositivo quedó registrado para push.',
+      message: 'Este dispositivo ya quedó listo para recibir alertas.',
     });
   } catch (error) {
     $q.notify({
       type: 'negative',
-      message: error instanceof Error ? error.message : 'No se pudo activar el registro push.',
+      message: error instanceof Error ? error.message : 'No pudimos activar las alertas.',
     });
   } finally {
     enablingPush.value = false;
@@ -251,12 +274,12 @@ async function savePreferences() {
 
     $q.notify({
       type: 'positive',
-      message: 'Las preferencias del dispositivo se guardaron correctamente.',
+      message: 'Tus preferencias se guardaron correctamente.',
     });
   } catch (error) {
     $q.notify({
       type: 'negative',
-      message: error instanceof Error ? error.message : 'No se pudieron guardar las preferencias.',
+      message: error instanceof Error ? error.message : 'No pudimos guardar tus preferencias.',
     });
   } finally {
     saving.value = false;

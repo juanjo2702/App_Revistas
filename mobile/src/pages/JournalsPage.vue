@@ -2,70 +2,93 @@
   <q-page class="page-frame">
     <div class="column q-gutter-md">
       <q-card class="glass-card">
-        <q-card-section>
-          <div class="text-overline text-secondary">Catálogo móvil</div>
-          <div class="text-h5 text-brand-title q-mt-xs">Revistas, números y artículos</div>
+        <q-card-section class="catalog-hero">
+          <div class="text-overline text-secondary">Catálogo universitario</div>
+          <div class="text-h4 text-brand-title q-mt-xs">Revistas, números y artículos</div>
           <div class="muted-copy q-mt-sm">
-            Explora por fuente OJS o usa la búsqueda avanzada para encontrar artículos por título,
-            autor, DOI o año.
+            Explora las revistas científicas de la Universidad, abre números completos y encuentra
+            artículos por título, autor, DOI o año.
           </div>
         </q-card-section>
       </q-card>
 
-      <q-card class="glass-card">
-        <q-card-section class="column q-gutter-md">
-          <div class="text-subtitle1 text-brand-title">Búsqueda avanzada</div>
+      <q-card class="glass-card search-card">
+        <q-expansion-item
+          v-model="searchExpanded"
+          icon="manage_search"
+          switch-toggle-side
+          expand-separator
+          header-class="search-card__header"
+        >
+          <template #header>
+            <q-item-section>
+              <q-item-label class="text-subtitle1 text-brand-title">Búsqueda avanzada</q-item-label>
+              <q-item-label caption>
+                Despliégala solo cuando quieras filtrar por texto, colección o año.
+              </q-item-label>
+            </q-item-section>
 
-          <q-input
-            v-model="searchQuery"
-            outlined
-            clearable
-            label="Buscar por título, autor o DOI"
-            @keyup.enter="runSearch"
-          >
-            <template #append>
-              <q-icon name="search" />
-            </template>
-          </q-input>
+            <q-item-section side>
+              <q-chip
+                v-if="hasSearchContext"
+                dense
+                color="accent"
+                text-color="white"
+                class="pill-chip"
+              >
+                {{ searchResults.length }}
+              </q-chip>
+            </q-item-section>
+          </template>
 
-          <div class="row q-col-gutter-sm">
-            <div class="col-12 col-sm-6">
-              <q-select
-                v-model="searchSourceSlug"
-                :options="searchSourceOptions"
-                emit-value
-                map-options
-                outlined
-                label="Filtrar por fuente"
-              />
+          <q-card-section class="column q-gutter-md q-pt-none">
+            <q-input
+              v-model="searchQuery"
+              outlined
+              clearable
+              label="Título, autor o DOI"
+              @keyup.enter="runSearch"
+            >
+              <template #append>
+                <q-icon name="search" />
+              </template>
+            </q-input>
+
+            <div class="row q-col-gutter-sm">
+              <div class="col-12 col-sm-6">
+                <q-select
+                  v-model="searchSourceSlug"
+                  :options="searchSourceOptions"
+                  emit-value
+                  map-options
+                  outlined
+                  label="Colección"
+                />
+              </div>
+
+              <div class="col-12 col-sm-6">
+                <q-select
+                  v-model="searchYear"
+                  :options="yearOptions"
+                  emit-value
+                  map-options
+                  outlined
+                  clearable
+                  label="Año"
+                />
+              </div>
             </div>
 
-            <div class="col-12 col-sm-6">
-              <q-select
-                v-model="searchYear"
-                :options="yearOptions"
-                emit-value
-                map-options
-                outlined
-                clearable
-                label="Filtrar por año"
-              />
-            </div>
-          </div>
-
-          <div class="row q-col-gutter-sm">
-            <div class="col-12 col-sm-auto">
+            <div class="search-actions">
               <q-btn
                 unelevated
                 rounded
                 color="primary"
-                icon="travel_explore"
+                icon="search"
                 :loading="loadingSearch"
                 label="Buscar"
                 @click="runSearch"
               />
-            </div>
-            <div class="col-12 col-sm-auto">
               <q-btn
                 flat
                 rounded
@@ -75,13 +98,13 @@
                 @click="clearSearch"
               />
             </div>
-          </div>
-        </q-card-section>
+          </q-card-section>
+        </q-expansion-item>
       </q-card>
 
       <section v-if="hasSearchContext">
         <div class="section-title">
-          <h2>Resultados de búsqueda</h2>
+          <h2>Resultados</h2>
           <q-chip
             color="primary"
             text-color="white"
@@ -99,7 +122,7 @@
             color="primary"
             size="42px"
           />
-          <div class="muted-copy">Consultando el índice local de búsqueda...</div>
+          <div class="muted-copy">Buscando artículos en el catálogo...</div>
         </div>
 
         <div
@@ -111,9 +134,9 @@
             size="48px"
             color="secondary"
           />
-          <div class="text-subtitle1 text-brand-title">Sin coincidencias</div>
+          <div class="text-subtitle1 text-brand-title">No encontramos coincidencias</div>
           <div class="muted-copy">
-            Ajusta tu consulta o navega por la estructura editorial debajo.
+            Prueba con otro término o navega por las revistas disponibles.
           </div>
         </div>
 
@@ -129,7 +152,7 @@
             <q-card-section class="row items-start q-col-gutter-md">
               <div class="col-12 col-sm">
                 <div class="text-overline text-secondary">
-                  {{ result.sourceName || result.source || 'Fuente' }}
+                  {{ result.sourceName || displaySourceName(result.source || '') || 'Colección universitaria' }}
                 </div>
                 <div class="text-h6 text-brand-title q-mt-xs">{{ result.title }}</div>
                 <div class="muted-copy q-mt-xs">
@@ -166,13 +189,13 @@
                 </div>
               </div>
 
-              <div class="col-12 col-sm-auto">
+              <div class="col-12 col-sm-auto result-action">
                 <q-btn
                   unelevated
                   rounded
                   color="primary"
                   icon="picture_as_pdf"
-                  label="Leer"
+                  label="Abrir PDF"
                   :disable="!result.pdf"
                   class="full-width-mobile"
                   @click="openArticle(result.id)"
@@ -184,29 +207,27 @@
       </section>
 
       <q-card class="glass-card">
-        <q-card-section>
-          <div class="text-subtitle1 text-brand-title">Explorar por fuente</div>
-          <div class="muted-copy q-mt-sm">
-            Selecciona una fuente OJS, luego una revista y finalmente una edición.
+        <q-card-section class="column q-gutter-md">
+          <div>
+            <div class="text-subtitle1 text-brand-title">Explorar por colección</div>
+            <div class="muted-copy q-mt-xs">
+              Elige una colección, abre una revista y luego revisa sus números disponibles.
+            </div>
           </div>
-        </q-card-section>
 
-        <q-separator inset />
-
-        <q-card-section>
           <q-select
             v-model="selectedSourceSlug"
             :options="sourceOptions"
             emit-value
             map-options
             outlined
-            label="Fuente editorial"
+            label="Colección"
             :loading="loadingSources"
           />
         </q-card-section>
       </q-card>
 
-      <section>
+      <section ref="journalsSectionRef">
         <div class="section-title">
           <h2>Revistas</h2>
           <q-btn
@@ -227,7 +248,9 @@
             color="secondary"
             size="42px"
           />
-          <div class="muted-copy">Consultando revistas en {{ selectedSourceSlug || 'la fuente elegida' }}...</div>
+          <div class="muted-copy">
+            Cargando revistas de {{ selectedSourceLabel || 'la colección seleccionada' }}...
+          </div>
         </div>
 
         <div
@@ -239,8 +262,8 @@
             size="48px"
             color="primary"
           />
-          <div class="text-subtitle1 text-brand-title">No hay revistas para mostrar todavía</div>
-          <div class="muted-copy">Prueba otra fuente o revisa la configuración del bridge.</div>
+          <div class="text-subtitle1 text-brand-title">No hay revistas disponibles</div>
+          <div class="muted-copy">Prueba con otra colección o actualiza la pantalla.</div>
         </div>
 
         <div
@@ -250,37 +273,50 @@
           <q-card
             v-for="journal in journals"
             :key="journal.id"
-            class="glass-card"
+            class="glass-card journal-card"
             :class="{ 'ring-primary': journal.id === selectedJournalId }"
-            clickable
-            @click="selectJournal(journal.id)"
           >
             <q-card-section class="row items-center q-col-gutter-md">
               <div class="col-12 col-sm">
-                <div class="text-overline text-secondary">{{ journal.source }}</div>
+                <div class="text-overline text-secondary">{{ displaySourceName(journal.source) }}</div>
                 <div class="text-h6 text-brand-title q-mt-xs">{{ journal.name }}</div>
                 <div class="muted-copy ellipsis-2-lines">
-                  {{ journal.description || 'Sin descripción disponible.' }}
+                  {{ journal.description || 'Explora esta revista para ver sus números y artículos publicados.' }}
                 </div>
               </div>
 
-              <div class="col-12 col-sm-auto">
-                <q-chip
-                  color="secondary"
-                  text-color="white"
-                  class="pill-chip"
-                >
-                  Abrir números
-                </q-chip>
+              <div class="col-12 col-sm-auto journal-card__action">
+                <q-btn
+                  unelevated
+                  rounded
+                  color="primary"
+                  icon="menu_book"
+                  label="Ver números"
+                  class="full-width-mobile"
+                  @click="selectJournal(journal.id)"
+                />
               </div>
             </q-card-section>
           </q-card>
         </div>
       </section>
 
-      <section v-if="selectedJournal">
+      <section
+        v-if="selectedJournal"
+        ref="issuesSectionRef"
+      >
         <div class="section-title">
-          <h2>Números de {{ selectedJournal.name }}</h2>
+          <div>
+            <h2>Números</h2>
+            <div class="muted-copy q-mt-xs">{{ selectedJournal.name }}</div>
+          </div>
+          <q-chip
+            color="secondary"
+            text-color="white"
+            class="pill-chip"
+          >
+            {{ issues.length }} disponibles
+          </q-chip>
         </div>
 
         <div
@@ -291,7 +327,7 @@
             color="accent"
             size="42px"
           />
-          <div class="muted-copy">Cargando números y ediciones...</div>
+          <div class="muted-copy">Cargando números publicados...</div>
         </div>
 
         <div
@@ -304,41 +340,69 @@
             class="col-12 col-sm-6"
           >
             <q-card
-              class="glass-card full-height"
-              clickable
-              @click="selectIssue(issue.id)"
+              class="glass-card full-height issue-card"
+              :class="{ 'ring-primary': issue.id === selectedIssueId }"
             >
-              <q-card-section>
+              <q-card-section class="column q-gutter-sm">
                 <div class="text-overline text-secondary">{{ issue.year || 'Edición' }}</div>
-                <div class="text-subtitle1 text-brand-title q-mt-xs">{{ issue.title }}</div>
-                <div class="muted-copy q-mt-sm">
-                  {{ issue.description || 'Abre esta edición para ver sus artículos y PDF asociados.' }}
+                <div class="text-subtitle1 text-brand-title">{{ issue.title }}</div>
+                <div class="muted-copy ellipsis-3-lines">
+                  {{ issue.description || 'Abre este número para leer sus artículos o revisar el PDF completo.' }}
                 </div>
               </q-card-section>
+
+              <q-card-actions class="issue-card__actions">
+                <q-btn
+                  unelevated
+                  rounded
+                  color="primary"
+                  icon="article"
+                  label="Ver artículos"
+                  class="full-width-mobile"
+                  @click="selectIssue(issue.id)"
+                />
+                <q-btn
+                  v-if="issue.pdf"
+                  flat
+                  rounded
+                  color="secondary"
+                  icon="picture_as_pdf"
+                  label="Abrir PDF"
+                  class="full-width-mobile"
+                  @click="openIssue(issue)"
+                />
+              </q-card-actions>
             </q-card>
           </div>
         </div>
       </section>
 
-      <section v-if="selectedIssue">
-        <div class="section-title">
-          <h2>Artículos</h2>
-          <div class="row q-gutter-sm items-center">
+      <section
+        v-if="selectedIssue"
+        ref="articlesSectionRef"
+      >
+        <div class="section-title articles-title">
+          <div>
+            <h2>Artículos</h2>
+            <div class="muted-copy q-mt-xs">{{ selectedIssue.title }}</div>
+          </div>
+
+          <div class="articles-title__actions">
             <q-chip
               dense
               color="primary"
               text-color="white"
               class="pill-chip"
             >
-              {{ articles.length }} resultados
+              {{ articles.length }}
             </q-chip>
             <q-btn
-              v-if="selectedIssue?.pdf"
+              v-if="selectedIssue.pdf"
               unelevated
               rounded
               color="secondary"
               icon="menu_book"
-              label="Leer nÃºmero completo"
+              label="Abrir número completo"
               @click="openIssue(selectedIssue)"
             />
           </div>
@@ -352,7 +416,7 @@
             color="primary"
             size="42px"
           />
-          <div class="muted-copy">Armando la tabla de contenidos...</div>
+          <div class="muted-copy">Preparando la lista de artículos...</div>
         </div>
 
         <div
@@ -364,8 +428,8 @@
             size="48px"
             color="secondary"
           />
-          <div class="text-subtitle1 text-brand-title">Sin artículos visibles</div>
-          <div class="muted-copy">Esta edición no devolvió artículos desde la API puente.</div>
+          <div class="text-subtitle1 text-brand-title">Aún no hay artículos visibles</div>
+          <div class="muted-copy">Actualiza la edición o prueba más tarde.</div>
         </div>
 
         <div
@@ -410,18 +474,18 @@
                       text-color="white"
                       class="pill-chip"
                     >
-                      PDF listo
+                      PDF disponible
                     </q-chip>
                   </div>
                 </div>
               </div>
-              <div class="col-12 col-sm-auto">
+              <div class="col-12 col-sm-auto article-card__action">
                 <q-btn
                   unelevated
                   rounded
                   color="primary"
                   icon="picture_as_pdf"
-                  label="Leer"
+                  label="Abrir PDF"
                   :disable="!article.pdf"
                   class="full-width-mobile"
                   @click="openArticle(article.id)"
@@ -436,7 +500,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import {
@@ -461,6 +525,7 @@ const searchResults = ref<SearchResult[]>([]);
 const selectedSourceSlug = ref<string>((route.query.source as string) || '');
 const selectedJournalId = ref('');
 const selectedIssueId = ref('');
+const searchExpanded = ref(false);
 
 const searchQuery = ref('');
 const searchSourceSlug = ref<string | null>(null);
@@ -472,13 +537,17 @@ const loadingIssues = ref(false);
 const loadingArticles = ref(false);
 const loadingSearch = ref(false);
 
+const journalsSectionRef = ref<HTMLElement | null>(null);
+const issuesSectionRef = ref<HTMLElement | null>(null);
+const articlesSectionRef = ref<HTMLElement | null>(null);
+
 const sourceOptions = computed(() => sources.value.map((source) => ({
   label: source.name,
   value: source.slug,
 })));
 
 const searchSourceOptions = computed(() => [
-  { label: 'Todas las fuentes', value: null },
+  { label: 'Todas las colecciones', value: null },
   ...sourceOptions.value,
 ]);
 
@@ -490,9 +559,27 @@ const yearOptions = computed(() => {
   }));
 });
 
+const selectedSourceLabel = computed(() => (
+  sources.value.find((source) => source.slug === selectedSourceSlug.value)?.name || ''
+));
 const selectedJournal = computed(() => journals.value.find((journal) => journal.id === selectedJournalId.value) || null);
 const selectedIssue = computed(() => issues.value.find((issue) => issue.id === selectedIssueId.value) || null);
 const hasSearchContext = computed(() => searchQuery.value.trim() !== '' || searchSourceSlug.value !== null || searchYear.value !== null);
+
+function displaySourceName(sourceSlug: string) {
+  return sources.value.find((source) => source.slug === sourceSlug)?.name || sourceSlug || 'Colección universitaria';
+}
+
+function scrollToSection(target: HTMLElement | null) {
+  if (!target) {
+    return;
+  }
+
+  target.scrollIntoView({
+    behavior: 'smooth',
+    block: 'start',
+  });
+}
 
 async function loadSources() {
   loadingSources.value = true;
@@ -504,7 +591,7 @@ async function loadSources() {
       selectedSourceSlug.value = sources.value[0]?.slug || '';
     }
   } catch (error) {
-    notifyError(error, 'No se pudieron cargar las fuentes.');
+    notifyError(error, 'No pudimos cargar las colecciones disponibles.');
   } finally {
     loadingSources.value = false;
   }
@@ -525,8 +612,10 @@ async function loadJournalsForSource(sourceSlug: string) {
 
   try {
     journals.value = await getJournals(sourceSlug);
+    await nextTick();
+    scrollToSection(journalsSectionRef.value);
   } catch (error) {
-    notifyError(error, 'No se pudo cargar la lista de revistas.');
+    notifyError(error, 'No pudimos cargar la lista de revistas.');
   } finally {
     loadingJournals.value = false;
   }
@@ -541,8 +630,10 @@ async function selectJournal(journalId: string) {
 
   try {
     issues.value = await getIssues(journalId);
+    await nextTick();
+    scrollToSection(issuesSectionRef.value);
   } catch (error) {
-    notifyError(error, 'No se pudieron cargar los números de la revista.');
+    notifyError(error, 'No pudimos cargar los números de esta revista.');
   } finally {
     loadingIssues.value = false;
   }
@@ -555,8 +646,10 @@ async function selectIssue(issueId: string) {
 
   try {
     articles.value = await getArticles(issueId);
+    await nextTick();
+    scrollToSection(articlesSectionRef.value);
   } catch (error) {
-    notifyError(error, 'No se pudieron cargar los artículos de la edición.');
+    notifyError(error, 'No pudimos cargar los artículos de este número.');
   } finally {
     loadingArticles.value = false;
   }
@@ -569,6 +662,7 @@ async function runSearch() {
   }
 
   loadingSearch.value = true;
+  searchExpanded.value = true;
 
   try {
     searchResults.value = await searchCatalog(
@@ -577,7 +671,7 @@ async function runSearch() {
       searchYear.value,
     );
   } catch (error) {
-    notifyError(error, 'No se pudo ejecutar la búsqueda.');
+    notifyError(error, 'No pudimos completar la búsqueda.');
   } finally {
     loadingSearch.value = false;
   }
@@ -629,6 +723,12 @@ function notifyError(error: unknown, fallbackMessage: string) {
   });
 }
 
+watch(hasSearchContext, (nextValue) => {
+  if (nextValue) {
+    searchExpanded.value = true;
+  }
+});
+
 watch(
   selectedSourceSlug,
   async (nextSource) => {
@@ -655,6 +755,52 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.catalog-hero {
+  padding-block: 4px;
+}
+
+.search-card {
+  overflow: hidden;
+}
+
+.search-card__header {
+  min-height: 78px;
+}
+
+.search-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.journal-card__action,
+.article-card__action,
+.result-action {
+  display: flex;
+  align-items: center;
+}
+
+.issue-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.issue-card__actions {
+  padding: 0 16px 16px;
+  gap: 10px;
+}
+
+.articles-title {
+  align-items: flex-start;
+}
+
+.articles-title__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .ring-primary {
   box-shadow:
     0 0 0 2px rgba(102, 51, 153, 0.18),
@@ -662,6 +808,14 @@ onMounted(async () => {
 }
 
 @media (max-width: 599px) {
+  .search-actions,
+  .articles-title__actions {
+    width: 100%;
+  }
+
+  .search-actions :deep(.q-btn),
+  .articles-title__actions :deep(.q-btn),
+  .issue-card__actions :deep(.q-btn),
   .full-width-mobile {
     width: 100%;
   }

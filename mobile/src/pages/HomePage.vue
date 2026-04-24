@@ -14,21 +14,21 @@
 
             <div class="hero-copy">
               <div class="text-overline text-white text-weight-bold">
-                Ecosistema editorial UNITEPC
+                Revistas UNITEPC
               </div>
               <div class="text-caption text-white">
-                Revistas UNITEPC
+                Universidad Técnica Privada Cosmos
               </div>
             </div>
           </div>
 
           <h1 class="hero-title text-brand-title">
-            Revistas académicas y lectura móvil en una sola app
+            Revistas científicas de la Universidad en una sola app
           </h1>
 
           <p class="hero-description">
-            Explora revistas OJS, abre artículos en PDF sin salir de la app y conserva tus lecturas
-            descargadas para volver a ellas después.
+            Explora revistas, abre artículos y números completos en PDF sin salir de la app y
+            conserva tus lecturas descargadas para volver a ellas cuando quieras.
           </p>
 
           <div class="hero-actions">
@@ -60,9 +60,9 @@
         <div class="col-12 col-sm-6">
           <q-card class="glass-card">
             <q-card-section>
-              <div class="text-overline text-secondary">Fuentes activas</div>
+              <div class="text-overline text-secondary">Colecciones activas</div>
               <div class="text-h4 text-brand-title q-mt-xs">{{ sources.length }}</div>
-              <div class="muted-copy">Dominios OJS conectados al bridge Laravel.</div>
+              <div class="muted-copy">Portales editoriales disponibles para consulta.</div>
             </q-card-section>
           </q-card>
         </div>
@@ -72,7 +72,7 @@
             <q-card-section>
               <div class="text-overline text-secondary">Descargas locales</div>
               <div class="text-h4 text-brand-title q-mt-xs">{{ downloadsCount }}</div>
-              <div class="muted-copy">PDFs disponibles sin depender del catálogo online.</div>
+              <div class="muted-copy">Documentos guardados para leer incluso sin conexión.</div>
             </q-card-section>
           </q-card>
         </div>
@@ -80,7 +80,7 @@
 
       <section>
         <div class="section-title">
-          <h2>Fuentes disponibles</h2>
+          <h2>Colecciones disponibles</h2>
           <q-btn
             flat
             round
@@ -99,7 +99,7 @@
             color="primary"
             size="42px"
           />
-          <div class="muted-copy">Cargando fuentes editoriales...</div>
+          <div class="muted-copy">Cargando colecciones...</div>
         </div>
 
         <div
@@ -113,10 +113,10 @@
           >
             <q-card-section class="row items-start q-col-gutter-md source-card">
               <div class="col-12 col-sm">
-                <div class="text-overline text-secondary">{{ source.slug }}</div>
+                <div class="text-overline text-secondary">Colección universitaria</div>
                 <div class="text-h6 text-brand-title q-mt-xs">{{ source.name }}</div>
                 <div class="muted-copy ellipsis-2-lines">
-                  {{ source.baseUrl }}
+                  Disponible para lectura móvil desde la app.
                 </div>
               </div>
 
@@ -126,7 +126,7 @@
                   rounded
                   color="primary"
                   class="source-action-btn"
-                  label="Abrir catálogo"
+                  label="Ver revistas"
                   @click="router.push({ name: 'journals', query: { source: source.slug } })"
                 />
               </div>
@@ -168,7 +168,7 @@ async function loadSnapshot() {
   } catch (error) {
     $q.notify({
       type: 'negative',
-      message: error instanceof Error ? error.message : 'No se pudo cargar el resumen inicial.',
+      message: error instanceof Error ? error.message : 'No pudimos cargar la pantalla inicial.',
     });
   } finally {
     loading.value = false;

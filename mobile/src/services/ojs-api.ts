@@ -3,12 +3,12 @@ import type {
   ArticleSummary,
   DevicePreferencePayload,
   DevicePreferenceState,
+  DeviceRegistrationPayload,
   HealthSnapshot,
   IssueSummary,
   JournalSummary,
   SearchResult,
   SourceSummary,
-  DeviceRegistrationPayload,
 } from 'src/types/ojs';
 
 interface CollectionResponse<T> {
@@ -41,13 +41,10 @@ export function buildBridgeUrl(path: string, query?: Record<string, string | num
   return url.toString();
 }
 
-function normalizeNetworkError(error: unknown, url: string): Error {
+function normalizeNetworkError(error: unknown): Error {
   if (error instanceof Error && error.message === 'Failed to fetch') {
-    const bridgeBase = resolveBridgeBaseUrl();
-
     return new Error(
-      `No se pudo conectar con la API puente (${bridgeBase}). ` +
-      'Verifica que el backend esté disponible, que la URL configurada sea correcta y que la app tenga acceso a internet.',
+      'No pudimos conectarnos en este momento. Verifica tu conexión a internet e inténtalo nuevamente.',
     );
   }
 
@@ -55,7 +52,7 @@ function normalizeNetworkError(error: unknown, url: string): Error {
     return error;
   }
 
-  return new Error(`No se pudo completar la solicitud hacia ${url}.`);
+  return new Error('No pudimos completar la solicitud en este momento.');
 }
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -71,14 +68,14 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
       ...init,
     });
   } catch (error) {
-    throw normalizeNetworkError(error, url);
+    throw normalizeNetworkError(error);
   }
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
     const message = typeof payload.message === 'string'
       ? payload.message
-      : 'La API puente no pudo completar la solicitud.';
+      : 'No pudimos completar tu solicitud en este momento.';
 
     throw new Error(message);
   }

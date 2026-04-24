@@ -58,9 +58,7 @@ class NotificationDispatchService
                         'title' => $title,
                         'body' => $body,
                     ],
-                    'data' => [
-                        'kind' => 'catalog_update',
-                    ],
+                    'data' => $this->buildPayloadData($sources, $journals, $years),
                 ]);
 
                 $sent++;
@@ -80,6 +78,34 @@ class NotificationDispatchService
             'failed' => $failed,
             'configured' => true,
         ];
+    }
+
+    /**
+     * @param  array<int, string>  $sources
+     * @param  array<int, string>  $journals
+     * @param  array<int, string|int>  $years
+     * @return array<string, string>
+     */
+    private function buildPayloadData(array $sources, array $journals, array $years): array
+    {
+        $payload = [
+            'kind' => 'catalog_update',
+            'route' => 'journals',
+        ];
+
+        if ($sources !== []) {
+            $payload['source'] = (string) $sources[0];
+        }
+
+        if ($journals !== []) {
+            $payload['journal'] = (string) $journals[0];
+        }
+
+        if ($years !== []) {
+            $payload['year'] = (string) $years[0];
+        }
+
+        return $payload;
     }
 
     /**
