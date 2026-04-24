@@ -32,5 +32,17 @@ return [
             'enabled' => filter_var(env('OJS_SOURCE_2_ENABLED', true), FILTER_VALIDATE_BOOL),
             'token' => env('OJS_SOURCE_2_TOKEN'),
         ],
+        [
+            'slug' => env('OJS_SOURCE_3_SLUG', 'facefa-eie'),
+            'name' => env('OJS_SOURCE_3_NAME', 'Economía, Innovación y Emprendimiento'),
+            'driver' => env('OJS_SOURCE_3_DRIVER', 'public_ojs_34'),
+            'base_url' => env('OJS_SOURCE_3_BASE_URL', 'https://investigacionfacefa.unitepc.edu.bo/revistas'),
+            'api_base_url' => env('OJS_SOURCE_3_API_BASE_URL'),
+            'journal_url' => env('OJS_SOURCE_3_JOURNAL_URL', 'https://investigacionfacefa.unitepc.edu.bo/revistas/index.php/eie/index'),
+            'archive_url' => env('OJS_SOURCE_3_ARCHIVE_URL', 'https://investigacionfacefa.unitepc.edu.bo/revistas/index.php/eie/issue/archive'),
+            'oai_base_url' => env('OJS_SOURCE_3_OAI_BASE_URL', 'https://investigacionfacefa.unitepc.edu.bo/revistas/index.php/eie/oai'),
+            'enabled' => filter_var(env('OJS_SOURCE_3_ENABLED', true), FILTER_VALIDATE_BOOL),
+            'token' => env('OJS_SOURCE_3_TOKEN'),
+        ],
     ], static fn (array $source) => filled($source['slug']) && filled($source['base_url']))),
 ];

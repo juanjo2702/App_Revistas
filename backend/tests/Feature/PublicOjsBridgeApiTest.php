@@ -166,6 +166,43 @@ class PublicOjsBridgeApiTest extends TestCase
             ->assertJsonPath('data.doi', '10.36716/unitepc.v12i2.286');
     }
 
+    public function test_it_supports_single_public_journals_with_index_urls_and_alphanumeric_issue_ids(): void
+    {
+        config()->set('ojs.sources', [[
+            'slug' => 'facefa-eie',
+            'name' => 'Economia, Innovacion y Emprendimiento',
+            'driver' => 'public_ojs_34',
+            'base_url' => 'https://investigacionfacefa.example/revistas',
+            'api_base_url' => null,
+            'journal_url' => 'https://investigacionfacefa.example/revistas/index.php/eie/index',
+            'archive_url' => 'https://investigacionfacefa.example/revistas/index.php/eie/issue/archive',
+            'oai_base_url' => 'https://investigacionfacefa.example/revistas/index.php/eie/oai',
+            'enabled' => true,
+            'token' => null,
+        ]]);
+
+        Http::fake([
+            'https://investigacionfacefa.example/revistas/index.php/eie/index' => Http::response($this->fixture('facefa-eie-journal.html')),
+            'https://investigacionfacefa.example/revistas/index.php/eie/issue/archive' => Http::response($this->fixture('facefa-eie-archive.html')),
+            'https://investigacionfacefa.example/revistas/index.php/eie/issue/view/eie7' => Http::response($this->fixture('facefa-eie-issue-eie7.html')),
+        ]);
+
+        $journals = $this->getJson('/api/v1/journals?source=facefa-eie');
+        $journals
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', 'facefa-eie:eie')
+            ->assertJsonPath('data.0.remoteId', 'eie');
+
+        $issues = $this->getJson('/api/v1/journals/facefa-eie:eie/issues');
+        $issues
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', 'facefa-eie:eie:eie7')
+            ->assertJsonPath('data.0.remoteId', 'eie7')
+            ->assertJsonPath('data.0.pdf.url', 'https://investigacionfacefa.example/revistas/index.php/eie/issue/download/eie7/17');
+    }
+
     private function fixture(string $name): string
     {
         return file_get_contents(__DIR__.'/../Fixtures/'.$name) ?: '';

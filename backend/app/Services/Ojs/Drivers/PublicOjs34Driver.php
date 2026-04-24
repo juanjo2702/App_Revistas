@@ -88,7 +88,7 @@ class PublicOjs34Driver implements OjsDriver
             $meta = $this->metaMap($xpath);
 
             $issueHref = $this->firstAttribute($xpath, '//a[contains(@href, "/issue/view/")]', 'href');
-            $issueRemoteId = $this->extractIdFromUrl($issueHref, '#/issue/view/(\d+)#');
+            $issueRemoteId = $this->extractIdFromUrl($issueHref, '#/issue/view/([^/?]+)#');
             $authors = $meta['citation_author'] ?? $meta['DC.Creator.PersonalName'] ?? [];
             $cleanAuthors = array_values(array_filter(array_map([$this, 'cleanText'], $authors)));
             $keywords = $meta['citation_keywords'] ?? $meta['DC.Subject'] ?? [];
@@ -231,7 +231,7 @@ class PublicOjs34Driver implements OjsDriver
                 }
 
                 $href = $this->firstAttributeForNode($xpath, './/a[contains(@class, "title") and contains(@href, "/issue/view/")]', 'href', $summary);
-                $remoteId = $this->extractIdFromUrl($href, '#/issue/view/(\d+)#');
+                $remoteId = $this->extractIdFromUrl($href, '#/issue/view/([^/?]+)#');
 
                 if ($remoteId === null || isset($issues[$remoteId])) {
                     continue;
@@ -264,7 +264,7 @@ class PublicOjs34Driver implements OjsDriver
             }
 
             $href = (string) $node->getAttribute('href');
-            $remoteId = $this->extractIdFromUrl($href, '#/issue/view/(\d+)#');
+            $remoteId = $this->extractIdFromUrl($href, '#/issue/view/([^/?]+)#');
 
             if ($remoteId === null || isset($issues[$remoteId])) {
                 continue;
@@ -528,8 +528,13 @@ class PublicOjs34Driver implements OjsDriver
         }
 
         $segments = array_values(array_filter(explode('/', trim($path, '/'))));
+        $last = (string) end($segments);
 
-        return (string) end($segments);
+        if ($last === 'index' && count($segments) > 1) {
+            return (string) $segments[count($segments) - 2];
+        }
+
+        return $last;
     }
 
     private function extractJournalDescription(DOMXPath $xpath): ?string
@@ -734,7 +739,7 @@ class PublicOjs34Driver implements OjsDriver
             return null;
         }
 
-        return preg_replace('#/(article|issue)/view/(\d+)/(\d+)$#', '/$1/download/$2/$3', $viewUrl) ?: $viewUrl;
+        return preg_replace('#/(article|issue)/view/([^/]+)/([^/]+)$#', '/$1/download/$2/$3', $viewUrl) ?: $viewUrl;
     }
 
     private function buildPdfAsset(array $source, string $title, ?string $url, string $kind): ?array
