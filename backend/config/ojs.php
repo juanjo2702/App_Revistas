@@ -13,8 +13,9 @@ return [
         [
             'slug' => env('OJS_SOURCE_1_SLUG', 'investigacion'),
             'name' => env('OJS_SOURCE_1_NAME', 'Investigacion UNITEPC'),
-            'driver' => env('OJS_SOURCE_1_DRIVER', 'rest_v1'),
+            'driver' => env('OJS_SOURCE_1_DRIVER', 'public_ojs_34'),
             'base_url' => env('OJS_SOURCE_1_BASE_URL', 'https://investigacion.unitepc.edu.bo/revista'),
+            'site_url' => env('OJS_SOURCE_1_SITE_URL', 'https://investigacion.unitepc.edu.bo/revista/'),
             'api_base_url' => env('OJS_SOURCE_1_API_BASE_URL', 'https://investigacion.unitepc.edu.bo/revista/index.php/_/api/v1'),
             'enabled' => filter_var(env('OJS_SOURCE_1_ENABLED', true), FILTER_VALIDATE_BOOL),
             'token' => env('OJS_SOURCE_1_TOKEN'),

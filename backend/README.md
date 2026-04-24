@@ -14,9 +14,11 @@ El archivo `.env.example` ya viene preparado para el primer despliegue en cPanel
 
 - `APP_URL=https://api.apprevistas.xpertiaplus.com`
 - `DB_CONNECTION=mysql`
-- `OJS_SOURCE_1_ENABLED=false`
+- `OJS_SOURCE_1_ENABLED=true`
+- `OJS_SOURCE_1_SITE_URL=https://investigacion.unitepc.edu.bo/revista/`
+- `OJS_SOURCE_1_DRIVER=public_ojs_34`
 - `OJS_SOURCE_2_DRIVER=public_ojs_34`
-- `G-News` como unica fuente activa
+- `Investigacion UNITEPC` y `G-News` como fuentes activas
 
 ## Despliegue en cPanel desde Git
 

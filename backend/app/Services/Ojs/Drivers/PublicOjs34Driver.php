@@ -33,6 +33,12 @@ class PublicOjs34Driver implements OjsDriver
 
     public function listJournals(array $source): array
     {
+        $siteUrl = $source['site_url'] ?? null;
+
+        if (is_string($siteUrl) && $siteUrl !== '') {
+            return $this->parseSiteIndexPage($source, $siteUrl);
+        }
+
         $journalUrl = $this->requiredUrl($source, 'journal_url');
 
         return [$this->parseJournalPage($source, $journalUrl)];
@@ -42,7 +48,7 @@ class PublicOjs34Driver implements OjsDriver
     {
         return array_map(
             fn (array $issue): array => $this->getIssue($source, $journalId, (string) $issue['remoteId']),
-            $this->parseArchivePage($source),
+            $this->parseArchivePage($source, $journalId),
         );
     }
 
@@ -51,12 +57,12 @@ class PublicOjs34Driver implements OjsDriver
         $cacheKey = sprintf('public-ojs34-issue:%s:%s:%s', $source['slug'], $journalId, $issueId);
 
         return Cache::remember($cacheKey, config('ojs.http.cache_ttl_seconds'), function () use ($source, $journalId, $issueId): array {
-            $archiveIssue = collect($this->parseArchivePage($source))
+            $archiveIssue = collect($this->parseArchivePage($source, $journalId))
                 ->firstWhere('remoteId', $issueId);
 
             $issueUrl = is_array($archiveIssue)
                 ? (string) ($archiveIssue['url'] ?? '')
-                : $this->http->absoluteUrl($source, sprintf('index.php/%s/issue/view/%s', $journalId, $issueId));
+                : $this->buildJournalScopedUrl($source, $journalId, sprintf('issue/view/%s', $issueId));
 
             if ($issueUrl === '') {
                 throw new BridgeException('The requested issue was not found in the upstream OJS source.', 404);
@@ -76,7 +82,7 @@ class PublicOjs34Driver implements OjsDriver
         $cacheKey = sprintf('public-ojs34-article:%s:%s:%s', $source['slug'], $journalId, $articleId);
 
         return Cache::remember($cacheKey, config('ojs.http.cache_ttl_seconds'), function () use ($source, $journalId, $articleId): array {
-            $articleUrl = $this->http->absoluteUrl($source, sprintf('index.php/%s/article/view/%s', $journalId, $articleId));
+            $articleUrl = $this->buildJournalScopedUrl($source, $journalId, sprintf('article/view/%s', $articleId));
             $html = $this->http->getHtml($source, $articleUrl);
             [$xpath] = $this->loadDom($html);
             $meta = $this->metaMap($xpath);
@@ -138,6 +144,7 @@ class PublicOjs34Driver implements OjsDriver
     {
         $html = $this->http->getHtml($source, $journalUrl);
         [$xpath] = $this->loadDom($html);
+        $meta = $this->metaMap($xpath);
         $remoteId = $this->extractJournalRemoteId($journalUrl);
 
         return [
@@ -147,10 +154,11 @@ class PublicOjs34Driver implements OjsDriver
             'name' => $this->textOf($xpath, '//h1')
                 ?? $this->trimTitle($this->textOf($xpath, '//title'))
                 ?? $source['name'],
-            'description' => $this->extractJournalDescription($xpath),
+            'description' => $this->extractJournalDescription($xpath)
+                ?? $this->firstMeta($meta, 'description'),
             'issn' => $this->extractIssn($xpath),
             'url' => $journalUrl,
-            'thumbnailUrl' => $this->firstAttribute($xpath, '//img[contains(@src, "pageHeaderLogoImage")]', 'src'),
+            'thumbnailUrl' => $this->firstAttribute($xpath, '//img[contains(@src, "homepageImage") or contains(@src, "pageHeaderLogoImage")][1]', 'src'),
             'apiHref' => null,
         ];
     }
@@ -158,12 +166,93 @@ class PublicOjs34Driver implements OjsDriver
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function parseArchivePage(array $source): array
+    private function parseSiteIndexPage(array $source, string $siteUrl): array
     {
-        $html = $this->http->getHtml($source, $this->requiredUrl($source, 'archive_url'));
+        $html = $this->http->getHtml($source, $siteUrl);
         [$xpath] = $this->loadDom($html);
-        $nodes = $xpath->query('//a[contains(@class, "title") and contains(@href, "/issue/view/")]');
+        $items = $xpath->query('//div[contains(@class, "journals")]//li');
+
+        if ($items === false) {
+            return [];
+        }
+
+        $journals = [];
+
+        foreach ($items as $item) {
+            if (! $item instanceof DOMElement) {
+                continue;
+            }
+
+            $journalUrl = $this->firstAttributeForNode($xpath, './/ul[contains(@class, "links")]//li[contains(@class, "view")]//a', 'href', $item)
+                ?? $this->firstAttributeForNode($xpath, './/h3//a', 'href', $item);
+
+            if (! is_string($journalUrl) || $journalUrl === '') {
+                continue;
+            }
+
+            $remoteId = $this->extractJournalRemoteId($journalUrl);
+
+            if ($remoteId === '') {
+                continue;
+            }
+
+            $journals[] = [
+                'id' => OjsId::journal($source['slug'], $remoteId),
+                'source' => $source['slug'],
+                'remoteId' => $remoteId,
+                'name' => $this->textOfForNode($xpath, './/h3//a', $item)
+                    ?? $this->textOfForNode($xpath, './/h3', $item)
+                    ?? $remoteId,
+                'description' => $this->textOfForNode($xpath, './/div[contains(@class, "description")]', $item),
+                'issn' => null,
+                'url' => $journalUrl,
+                'thumbnailUrl' => $this->firstAttributeForNode($xpath, './/img[1]', 'src', $item),
+                'apiHref' => null,
+            ];
+        }
+
+        return $journals;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function parseArchivePage(array $source, ?string $journalId = null): array
+    {
+        $html = $this->http->getHtml($source, $this->resolveArchiveUrl($source, $journalId));
+        [$xpath] = $this->loadDom($html);
+        $summaries = $xpath->query('//div[contains(@class, "obj_issue_summary")]');
         $issues = [];
+
+        if ($summaries !== false && $summaries->length > 0) {
+            foreach ($summaries as $summary) {
+                if (! $summary instanceof DOMElement) {
+                    continue;
+                }
+
+                $href = $this->firstAttributeForNode($xpath, './/a[contains(@class, "title") and contains(@href, "/issue/view/")]', 'href', $summary);
+                $remoteId = $this->extractIdFromUrl($href, '#/issue/view/(\d+)#');
+
+                if ($remoteId === null || isset($issues[$remoteId])) {
+                    continue;
+                }
+
+                $title = $this->textOfForNode($xpath, './/a[contains(@class, "title")]', $summary);
+                $series = $this->textOfForNode($xpath, './/*[contains(@class, "series")]', $summary);
+                $description = $this->textOfForNode($xpath, './/*[contains(@class, "description")]', $summary);
+
+                $issues[$remoteId] = [
+                    'remoteId' => $remoteId,
+                    'title' => $series ? trim($series.': '.($title ?? 'Numero')) : ($title ?? 'Numero'),
+                    'description' => $description,
+                    'url' => $href,
+                ];
+            }
+
+            return array_values($issues);
+        }
+
+        $nodes = $xpath->query('//a[contains(@class, "title") and contains(@href, "/issue/view/")]');
 
         if ($nodes === false) {
             return [];
@@ -237,7 +326,11 @@ class PublicOjs34Driver implements OjsDriver
                 $source,
                 $title,
                 $this->deriveGalleyDownloadUrl(
-                    $this->firstAttribute($xpath, '//a[contains(@href, "/issue/view/") and contains(., "PDF completo")]', 'href')
+                    $this->firstAttribute(
+                        $xpath,
+                        '(//div[contains(@class, "galleys")]//a[(contains(@href, "/issue/view/") or contains(@href, "/issue/download/")) and not(contains(@href, "/article/"))][1] | //a[(contains(@href, "/issue/view/") or contains(@href, "/issue/download/")) and (contains(., "PDF completo") or contains(., "PDF")) and not(contains(@href, "/article/"))][1])',
+                        'href',
+                    )
                 ),
                 'issue',
             ),
@@ -399,9 +492,29 @@ class PublicOjs34Driver implements OjsDriver
         return $value !== '' ? $value : null;
     }
 
+    private function firstAttributeForNode(DOMXPath $xpath, string $query, string $attribute, DOMNode $context): ?string
+    {
+        $node = $xpath->query($query, $context)?->item(0);
+
+        if (! $node instanceof DOMElement) {
+            return null;
+        }
+
+        $value = trim((string) $node->getAttribute($attribute));
+
+        return $value !== '' ? $value : null;
+    }
+
     private function textOf(DOMXPath $xpath, string $query): ?string
     {
         $node = $xpath->query($query)?->item(0);
+
+        return $node instanceof DOMNode ? $this->cleanText($node->textContent) : null;
+    }
+
+    private function textOfForNode(DOMXPath $xpath, string $query, DOMNode $context): ?string
+    {
+        $node = $xpath->query($query, $context)?->item(0);
 
         return $node instanceof DOMNode ? $this->cleanText($node->textContent) : null;
     }
@@ -482,7 +595,7 @@ class PublicOjs34Driver implements OjsDriver
             return null;
         }
 
-        return trim(preg_replace('/\|\s*G-news UNITEPC$/u', '', $title) ?? $title);
+        return trim(preg_replace('/\|\s*.+$/u', '', $title) ?? $title);
     }
 
     private function extractIssueDescription(DOMXPath $xpath): ?string
@@ -687,5 +800,33 @@ class PublicOjs34Driver implements OjsDriver
             ->ascii()
             ->lower()
             ->value();
+    }
+
+    private function resolveArchiveUrl(array $source, ?string $journalId): string
+    {
+        $configuredArchiveUrl = $source['archive_url'] ?? null;
+
+        if (
+            is_string($configuredArchiveUrl)
+            && $configuredArchiveUrl !== ''
+            && (
+                $journalId === null
+                || ! isset($source['journal_url'])
+                || $this->extractJournalRemoteId((string) $source['journal_url']) === $journalId
+            )
+        ) {
+            return $configuredArchiveUrl;
+        }
+
+        if (! is_string($journalId) || $journalId === '') {
+            throw new BridgeException('The requested journal is missing its archive URL.', 500);
+        }
+
+        return $this->buildJournalScopedUrl($source, $journalId, 'issue/archive');
+    }
+
+    private function buildJournalScopedUrl(array $source, string $journalId, string $suffix): string
+    {
+        return $this->http->absoluteUrl($source, sprintf('index.php/%s/%s', $journalId, ltrim($suffix, '/')));
     }
 }
