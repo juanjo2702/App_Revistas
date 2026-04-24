@@ -2,4 +2,6 @@
 create-quasar-*.tgz
 Thumbs.db
 .DS_Store
-
+.idea/
+*firebase-service-account*.json
+*service-account*.json

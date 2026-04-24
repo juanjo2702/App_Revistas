@@ -37,3 +37,4 @@ yarn-error.log*
 /src-capacitor/android/keystore.properties
 /src-capacitor/android/app/*.jks
 /src-capacitor/android/app/*.keystore
+/src-capacitor/android/app/google-services.json

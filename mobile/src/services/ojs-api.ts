@@ -73,9 +73,17 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    const message = typeof payload.message === 'string'
-      ? payload.message
-      : 'No pudimos completar tu solicitud en este momento.';
+    const validationErrors = payload && typeof payload === 'object' && 'errors' in payload
+      ? payload.errors as Record<string, string[] | undefined>
+      : null;
+    const firstValidationMessage = validationErrors
+      ? Object.values(validationErrors).flat().find((message) => typeof message === 'string' && message.trim() !== '')
+      : null;
+    const message = typeof firstValidationMessage === 'string'
+      ? firstValidationMessage
+      : typeof payload.message === 'string'
+        ? payload.message
+        : 'No pudimos completar tu solicitud en este momento.';
 
     throw new Error(message);
   }
